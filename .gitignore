@@ -1,0 +1,12 @@
+# Keep backend folder but ignore node_modules and env files
+backend/node_modules/
+backend/.env
+backend/*.log
+
+# Keep frontend folder 
+# (no gitignore needed for frontend static files)
+
+# General
+.DS_Store
+*.log
+.env
