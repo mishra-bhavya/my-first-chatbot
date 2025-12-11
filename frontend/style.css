@@ -106,6 +106,32 @@ body::before {
     opacity: 0.9;
 }
 
+.quota-timer {
+    margin-top: 12px;
+    padding: 12px 20px;
+    background: rgba(255, 107, 107, 0.1);
+    border: 1px solid rgba(255, 107, 107, 0.3);
+    border-radius: 8px;
+    backdrop-filter: blur(10px);
+}
+
+.quota-message {
+    margin: 0 0 8px 0;
+    color: #ff9999;
+    font-size: 14px;
+    font-style: italic;
+}
+
+.quota-countdown {
+    margin: 0;
+    font-size: 32px;
+    font-weight: bold;
+    color: #ffaaaa;
+    text-shadow: 0 0 15px rgba(255, 170, 170, 0.5);
+    letter-spacing: 2px;
+    font-family: 'Courier New', monospace;
+}
+
 .chat-container {
     flex: 1;
     overflow-y: auto;

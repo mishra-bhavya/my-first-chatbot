@@ -13,6 +13,61 @@ app.use(express.json());
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
+// Model configuration
+const PRIMARY_MODEL = process.env.PRIMARY_MODEL || 'gemini-2.5-flash';
+const FALLBACK_MODEL = process.env.FALLBACK_MODEL || 'gemini-1.5-flash-latest';
+
+// Helper function: Generate with retry and fallback
+async function generateWithRetry(prompt, maxRetries = 3) {
+  let attempt = 0;
+  let backoffDelay = 1000; // Start with 1 second
+
+  // Try primary model
+  while (attempt < maxRetries) {
+    try {
+      const model = genAI.getGenerativeModel({ model: PRIMARY_MODEL });
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      return { text: response.text(), quota: false };
+    } catch (error) {
+      attempt++;
+      
+      // Check if it's a 429 quota error
+      if (error.message && error.message.includes('429')) {
+        console.log(`Quota error on attempt ${attempt}, waiting ${backoffDelay}ms...`);
+        
+        // Parse server-supplied retry delay if available (e.g., "19s")
+        const retryMatch = error.message.match(/(\d+)s/);
+        const serverDelay = retryMatch ? parseInt(retryMatch[1]) * 1000 : null;
+        
+        // Wait using server delay or exponential backoff
+        await new Promise(resolve => setTimeout(resolve, serverDelay || backoffDelay));
+        backoffDelay *= 2; // Exponential backoff: 1s, 2s, 4s
+        
+        // If max retries reached, try fallback model
+        if (attempt >= maxRetries && FALLBACK_MODEL) {
+          console.log('Trying fallback model:', FALLBACK_MODEL);
+          try {
+            const fallbackModel = genAI.getGenerativeModel({ model: FALLBACK_MODEL });
+            const result = await fallbackModel.generateContent(prompt);
+            const response = await result.response;
+            return { text: response.text(), quota: false };
+          } catch (fallbackError) {
+            console.error('Fallback model also failed:', fallbackError.message);
+          }
+        }
+      } else {
+        // Not a quota error, throw immediately
+        throw error;
+      }
+    }
+  }
+
+  // All retries exhausted - return quota exhausted with retry delay
+  const retryAfter = Math.ceil(backoffDelay / 1000); // Convert to seconds
+  return { quota: true, retryAfter };
+}
+
 // Health check endpoint
 app.get('/', (req, res) => {
   res.json({ message: 'Chatbot API is running!' });
@@ -26,9 +81,6 @@ app.post('/api/chat', async (req, res) => {
     if (!message) {
       return res.status(400).json({ error: 'Message is required' });
     }
-
-    // Get the generative model
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     // System prompt for Mystical Bagheera character
     const systemPrompt = `You are Bagheera, the wise black panther from The Jungle Book. You are a mystical guardian spirit, elegant and protective, with quiet strength and gentle wisdom.
@@ -98,13 +150,22 @@ Stay fully in character at all times. You are Bagheera, guardian of the jungle, 
       prompt = `${systemPrompt}\n\n${context}\nuser: ${message}`;
     }
 
-    // Generate response
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    // Generate response with retry and fallback
+    const result = await generateWithRetry(prompt);
 
+    // Check if quota exhausted
+    if (result.quota) {
+      return res.status(429).json({
+        quota: true,
+        retryAfter: result.retryAfter,
+        message: 'API quota exhausted. Please try again later.'
+      });
+    }
+
+    // Normal response
     res.json({ 
-      response: text,
+      response: result.text,
+      quota: false,
       timestamp: new Date().toISOString()
     });
 
