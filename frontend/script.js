@@ -7,6 +7,11 @@ const chatContainer = document.getElementById('chatContainer');
 const userInput = document.getElementById('userInput');
 const sendBtn = document.getElementById('sendBtn');
 const apiEndpoint = document.getElementById('apiEndpoint');
+const ambienceToggle = document.getElementById('ambienceToggle');
+
+// Jungle ambience audio
+let jungleAudio = null;
+let ambienceEnabled = false;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -16,6 +21,25 @@ document.addEventListener('DOMContentLoaded', () => {
         apiEndpoint.value = savedEndpoint;
         API_URL = savedEndpoint;
     }
+
+    // Initialize jungle ambience (placeholder URL - replace with actual audio file)
+    jungleAudio = new Audio('https://www.soundjay.com/nature/sounds/rain-03.mp3'); // Placeholder
+    jungleAudio.loop = true;
+    jungleAudio.volume = 0.3;
+
+    // Ambience toggle handler
+    ambienceToggle.addEventListener('click', () => {
+        ambienceEnabled = !ambienceEnabled;
+        if (ambienceEnabled) {
+            jungleAudio.play().catch(e => console.log('Audio play failed:', e));
+            ambienceToggle.classList.add('active');
+            ambienceToggle.textContent = '🌙 Jungle Ambience On';
+        } else {
+            jungleAudio.pause();
+            ambienceToggle.classList.remove('active');
+            ambienceToggle.textContent = '🌙 Enable Jungle Ambience';
+        }
+    });
 
     // Auto-resize textarea
     userInput.addEventListener('input', () => {
