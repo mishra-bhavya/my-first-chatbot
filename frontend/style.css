@@ -8,10 +8,8 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(135deg, #0A0A0F 0%, #201B3A 100%);
     min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 20px;
+    margin: 0;
+    padding: 0;
     position: relative;
     overflow: hidden;
 }
@@ -29,13 +27,12 @@ body::before {
 }
 
 .container {
-    width: 100%;
-    max-width: 800px;
-    height: 90vh;
+    width: 100vw;
+    height: 100vh;
     background: linear-gradient(180deg, #201B3A 0%, #0A0A0F 100%);
-    border-radius: 20px;
-    box-shadow: 0 20px 60px rgba(58, 77, 255, 0.3), 0 0 100px rgba(45, 143, 111, 0.1);
-    border: 2px solid rgba(58, 77, 255, 0.3);
+    border-radius: 0;
+    box-shadow: none;
+    border: none;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -46,20 +43,30 @@ body::before {
 .chat-header {
     background: linear-gradient(135deg, #3A4DFF 0%, #2D8F6F 100%);
     color: #CFCFD9;
-    padding: 20px;
+    padding: 15px 20px;
     text-align: center;
     border-bottom: 2px solid rgba(45, 143, 111, 0.5);
     position: relative;
     box-shadow: 0 4px 20px rgba(58, 77, 255, 0.3);
 }
 
+.chat-header h1 {
+    font-size: 26px;
+    margin: 10px 0;
+}
+
+.chat-header p {
+    font-size: 16px;
+    margin: 6px 0;
+}
+
 .bagheera-image-container {
-    margin-bottom: 10px;
+    margin-bottom: 8px;
 }
 
 .bagheera-image {
-    width: 80px;
-    height: 80px;
+    width: 70px;
+    height: 70px;
     border-radius: 50%;
     border: 3px solid #2D8F6F;
     box-shadow: 0 0 20px rgba(45, 143, 111, 0.6), 0 0 40px rgba(58, 77, 255, 0.3);
@@ -75,7 +82,7 @@ body::before {
     color: #CFCFD9;
     border-radius: 20px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 14px;
     transition: all 0.3s ease;
 }
 
@@ -102,7 +109,7 @@ body::before {
 .chat-container {
     flex: 1;
     overflow-y: auto;
-    padding: 20px;
+    padding: 24px;
     background: rgba(10, 10, 15, 0.6);
     position: relative;
 }
@@ -132,6 +139,10 @@ body::before {
     text-shadow: 0 0 15px rgba(58, 77, 255, 0.5);
 }
 
+.welcome-message p {
+    font-size: 17px;
+}
+
 @keyframes fadeInGlow {
     from {
         opacity: 0;
@@ -146,7 +157,8 @@ body::before {
 }
 
 .message {
-    margin-bottom: 20px;
+    margin-bottom: 16px;
+    margin-top: 16px;
     display: flex;
     animation: fadeIn 0.3s ease-in;
 }
@@ -171,11 +183,13 @@ body::before {
 }
 
 .message-content {
-    max-width: 70%;
+    max-width: 65%;
     padding: 12px 16px;
     border-radius: 18px;
     word-wrap: break-word;
     white-space: pre-wrap;
+    font-size: 16px;
+    line-height: 1.6;
 }
 
 .message.user .message-content {
@@ -270,10 +284,10 @@ body::before {
 
 .input-container {
     display: flex;
-    padding: 20px;
+    padding: 18px 24px;
     background: rgba(32, 27, 58, 0.8);
     border-top: 2px solid rgba(45, 143, 111, 0.5);
-    gap: 10px;
+    gap: 12px;
     align-items: flex-end;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
 }
@@ -283,7 +297,7 @@ body::before {
     padding: 12px 16px;
     border: 2px solid rgba(58, 77, 255, 0.3);
     border-radius: 24px;
-    font-size: 15px;
+    font-size: 16px;
     resize: none;
     font-family: inherit;
     outline: none;
@@ -303,8 +317,8 @@ body::before {
 }
 
 .send-btn {
-    width: 48px;
-    height: 48px;
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
     background: linear-gradient(135deg, #2D8F6F 0%, #3A4DFF 100%);
     border: 2px solid rgba(45, 143, 111, 0.6);
@@ -335,17 +349,17 @@ body::before {
 }
 
 .settings-container {
-    padding: 10px 20px;
+    padding: 8px 20px;
     background: rgba(10, 10, 15, 0.8);
     border-top: 2px solid rgba(58, 77, 255, 0.3);
 }
 
 #apiEndpoint {
     width: 100%;
-    padding: 8px 12px;
+    padding: 6px 10px;
     border: 1px solid rgba(58, 77, 255, 0.3);
     border-radius: 8px;
-    font-size: 12px;
+    font-size: 11px;
     font-family: 'Courier New', monospace;
     background: rgba(32, 27, 58, 0.6);
     color: #CFCFD9;
@@ -360,23 +374,15 @@ body::before {
     border-left: 4px solid #3A4DFF;
 }
 
-/* Scrollbar styling */
+/* Scrollbar styling - hidden */
 .chat-container::-webkit-scrollbar {
-    width: 8px;
+    width: 0px;
+    display: none;
 }
 
-.chat-container::-webkit-scrollbar-track {
-    background: rgba(10, 10, 15, 0.4);
-}
-
-.chat-container::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, #3A4DFF 0%, #2D8F6F 100%);
-    border-radius: 4px;
-    box-shadow: 0 0 10px rgba(58, 77, 255, 0.5);
-}
-
-.chat-container::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, #4A5DFF 0%, #3D9F7F 100%);
+.chat-container {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
 }
 
 /* Mystical Effects */
@@ -469,21 +475,21 @@ body::before {
 
 /* Responsive design */
 @media (max-width: 768px) {
-    .container {
-        height: 100vh;
-        border-radius: 0;
-    }
-
     .message-content {
-        max-width: 85%;
+        max-width: 75%;
+        font-size: 13px;
     }
 
     .chat-header h1 {
-        font-size: 20px;
+        font-size: 18px;
     }
     
     .bagheera-image {
-        width: 60px;
-        height: 60px;
+        width: 50px;
+        height: 50px;
+    }
+    
+    .welcome-message h2 {
+        font-size: 20px;
     }
 }
