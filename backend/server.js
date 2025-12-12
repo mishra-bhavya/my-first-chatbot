@@ -141,18 +141,7 @@ RESPONSE LENGTH GUIDE:
 
 Stay friendly, keep it simple, use emojis, and be there for them like a caring friend or mentor 🐾✨`;
 
-    // Build conversation context
-    let prompt = `${systemPrompt}\n\nuser: ${message}`;
-    if (conversationHistory && conversationHistory.length > 0) {
-      const context = conversationHistory
-        .map(msg => `${msg.role}: ${msg.content}`)
-        .join('\n');
-      prompt = `${systemPrompt}\n\n${context}\nuser: ${message}`;
-    }
-
-    // Generate response with retry and fallback
-    const result = await generateWithRetry(prompt);
-messages array for OpenAI
+    // Build messages array for OpenAI
     const messages = [
       { role: 'system', content: systemPrompt }
     ];
@@ -171,7 +160,18 @@ messages array for OpenAI
     messages.push({ role: 'user', content: message });
 
     // Generate response with retry
-    const result = await generateWithRetry(messages
+    const result = await generateWithRetry(messages);
+
+    // Normal response
+    res.json({ 
+      response: result.text,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Error generating response:', error);
+    res.status(500).json({ 
+      error: 'Failed to generate response',
       details: error.message 
     });
   }
