@@ -30,13 +30,15 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const PRIMARY_MODEL = process.env.PRIMARY_MODEL || 'gemini-2.5-flash';
 const FALLBACK_MODEL = process.env.FALLBACK_MODEL || 'gemini-2.0-flash';
 
-// Helper function: Generate with retry and fallback
+// Helper function: Generate with retry (NO FALLBACK - always use primary model)
 async function generateWithRetry(prompt, maxRetries = 3) {
   let attempt = 0;
   let backoffDelay = 1000; // Start with 1 second
   let lastError = null;
 
-  // Try primary model
+  console.log(`Using PRIMARY model: ${PRIMARY_MODEL}`);
+
+  // Try primary model only
   while (attempt < maxRetries) {
     try {
       const model = genAI.getGenerativeModel({ model: PRIMARY_MODEL });
@@ -49,51 +51,38 @@ async function generateWithRetry(prompt, maxRetries = 3) {
         ]
       });
       const response = await result.response;
+      console.log(`✅ Success on attempt ${attempt + 1}`);
       return { text: response.text(), success: true };
     } catch (error) {
       attempt++;
       lastError = error;
+      console.error(`❌ Attempt ${attempt} failed:`, error.message);
       
       // Check if it's a 503 (service unavailable/overloaded) or 429 (rate limit)
       if (error.message && (error.message.includes('503') || error.message.includes('429'))) {
-        console.log(`Retry ${attempt}/${maxRetries}: Server busy/overloaded, waiting ${backoffDelay}ms...`);
-        
-        // Parse server-supplied retry delay if available (e.g., "19s")
-        const retryMatch = error.message.match(/(\d+)s/);
-        const serverDelay = retryMatch ? parseInt(retryMatch[1]) * 1000 : null;
-        
-        // Wait using server delay or exponential backoff
-        await new Promise(resolve => setTimeout(resolve, serverDelay || backoffDelay));
-        backoffDelay *= 2; // Exponential backoff: 1s, 2s, 4s
-        
-        // If max retries reached, try fallback model
-        if (attempt >= maxRetries && FALLBACK_MODEL) {
-          console.log('Trying fallback model:', FALLBACK_MODEL);
-          try {
-            const fallbackModel = genAI.getGenerativeModel({ model: FALLBACK_MODEL });
-            const result = await fallbackModel.generateContent({
-              contents: [
-                {
-                  role: "user",
-                  parts: [{ text: prompt }]
-                }
-              ]
-            });
-            const response = await result.response;
-            return { text: response.text(), success: true };
-          } catch (fallbackError) {
-            console.error('Fallback model also failed:', fallbackError.message);
-            lastError = fallbackError;
-          }
+        if (attempt < maxRetries) {
+          console.log(`⏳ Retrying in ${backoffDelay}ms... (${attempt}/${maxRetries})`);
+          
+          // Parse server-supplied retry delay if available (e.g., "19s")
+          const retryMatch = error.message.match(/(\d+)s/);
+          const serverDelay = retryMatch ? parseInt(retryMatch[1]) * 1000 : null;
+          
+          // Wait using server delay or exponential backoff
+          await new Promise(resolve => setTimeout(resolve, serverDelay || backoffDelay));
+          backoffDelay *= 2; // Exponential backoff: 1s, 2s, 4s
+        } else {
+          console.error(`💥 All retries exhausted for PRIMARY model`);
         }
       } else {
         // Not a retryable error (invalid API key, invalid model, etc.), throw immediately
+        console.error(`🚨 Non-retryable error, throwing immediately`);
         throw error;
       }
     }
   }
 
-  // All retries exhausted - throw the last error instead of returning fake quota
+  // All retries exhausted - throw the last error
+  console.error(`💥 Failed after ${maxRetries} attempts`);
   throw lastError;
 }
 
