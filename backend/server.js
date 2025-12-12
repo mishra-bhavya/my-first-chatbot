@@ -6,8 +6,21 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors());
+//Middleware: CORS configuration
+const allowedOrigins = [
+  'https://mishra-bhavya.github.io/my-first-chatbot', // GitHub Pages
+  'http://127.0.0.1:5500',  // Live Server
+  'http://localhost:5500',
+  'http://localhost:3000'   // optional
+];
+
+app.use(cors({
+  origin: function(origin, callback) {
+    if (!origin) return callback(null, true); // allow curl/postman
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error('CORS policy: origin not allowed'), false);
+  }
+}));
 app.use(express.json());
 
 // Initialize Gemini AI
@@ -26,7 +39,14 @@ async function generateWithRetry(prompt, maxRetries = 3) {
   while (attempt < maxRetries) {
     try {
       const model = genAI.getGenerativeModel({ model: PRIMARY_MODEL });
-      const result = await model.generateContent(prompt);
+      const result = await model.generateContent({
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: prompt }]
+          }
+        ]
+      });
       const response = await result.response;
       return { text: response.text(), quota: false };
     } catch (error) {
@@ -49,7 +69,14 @@ async function generateWithRetry(prompt, maxRetries = 3) {
           console.log('Trying fallback model:', FALLBACK_MODEL);
           try {
             const fallbackModel = genAI.getGenerativeModel({ model: FALLBACK_MODEL });
-            const result = await fallbackModel.generateContent(prompt);
+            const result = await fallbackModel.generateContent({
+              contents: [
+                {
+                  role: "user",
+                  parts: [{ text: prompt }]
+                }
+              ]
+            });
             const response = await result.response;
             return { text: response.text(), quota: false };
           } catch (fallbackError) {

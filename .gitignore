@@ -1,12 +1,19 @@
-# Keep backend folder but ignore node_modules and env files
+# Dependencies
+node_modules/
 backend/node_modules/
+
+# Environment files
+.env
 backend/.env
+
+# Logs
+*.log
 backend/*.log
 
-# Keep frontend folder 
-# (no gitignore needed for frontend static files)
-
-# General
+# OS files
 .DS_Store
-*.log
-.env
+
+# Package locks (optional - usually committed for production)
+# Uncomment if you want to ignore them:
+# package-lock.json
+# backend/package-lock.json
