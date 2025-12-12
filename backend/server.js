@@ -28,7 +28,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // Model configuration
 const PRIMARY_MODEL = process.env.PRIMARY_MODEL || 'gemini-2.5-flash';
-const FALLBACK_MODEL = process.env.FALLBACK_MODEL || 'gemini-1.5-flash-latest';
+const FALLBACK_MODEL = process.env.FALLBACK_MODEL || 'gemini-2.0-flash';
 
 // Helper function: Generate with retry and fallback
 async function generateWithRetry(prompt, maxRetries = 3) {
