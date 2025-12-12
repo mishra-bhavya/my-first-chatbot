@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 3000;
 
 //Middleware: CORS configuration
 const allowedOrigins = [
-  'https://mishra-bhavya.github.io/my-first-chatbot', // GitHub Pages
+  'https://mishra-bhavya.github.io',  // GitHub Pages (root)
   'http://127.0.0.1:5500',  // Live Server
   'http://localhost:5500',
   'http://localhost:3000'   // optional
