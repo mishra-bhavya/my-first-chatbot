@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const OpenAI = require('openai');
 require('dotenv').config();
 
 const app = express();
@@ -23,58 +23,47 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Initialize Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// Initialize OpenAI
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
 
 // Model configuration
-// Using gemini-2.0-flash as primary since 2.5-flash has only 20 req/day on free tier
-const PRIMARY_MODEL = process.env.PRIMARY_MODEL || 'gemini-2.0-flash';
-const FALLBACK_MODEL = process.env.FALLBACK_MODEL || 'gemini-1.5-flash';
+const PRIMARY_MODEL = process.env.PRIMARY_MODEL || 'gpt-4o-mini';
 
-// Helper function: Generate with retry (NO FALLBACK - always use primary model)
-async function generateWithRetry(prompt, maxRetries = 3) {
+// Helper function: Generate with retry using OpenAI
+async function generateWithRetry(messages, maxRetries = 3) {
   let attempt = 0;
   let backoffDelay = 1000; // Start with 1 second
   let lastError = null;
 
-  console.log(`Using PRIMARY model: ${PRIMARY_MODEL}`);
+  console.log(`Using OpenAI model: ${PRIMARY_MODEL}`);
 
   // Try primary model only
   while (attempt < maxRetries) {
     try {
-      const model = genAI.getGenerativeModel({ model: PRIMARY_MODEL });
-      const result = await model.generateContent({
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: prompt }]
-          }
-        ]
+      const completion = await openai.chat.completions.create({
+        model: PRIMARY_MODEL,
+        messages: messages,
+        temperature: 0.7,
+        max_tokens: 500
       });
-      const response = await result.response;
+      
       console.log(`✅ Success on attempt ${attempt + 1}`);
-      return { text: response.text(), success: true };
+      return { text: completion.choices[0].message.content, success: true };
     } catch (error) {
       attempt++;
       lastError = error;
       console.error(`❌ Attempt ${attempt} failed:`, error.message);
       
-      // Check if it's a 503 (service unavailable/overloaded) or 429 (rate limit)
-      if (error.message && (error.message.includes('503') || error.message.includes('429'))) {
-        if (attempt < maxRetries) {
-          console.log(`⏳ Retrying in ${backoffDelay}ms... (${attempt}/${maxRetries})`);
-          
-          // Parse server-supplied retry delay if available (e.g., "19s")
-          const retryMatch = error.message.match(/(\d+)s/);
-          const serverDelay = retryMatch ? parseInt(retryMatch[1]) * 1000 : null;
-          
-          // Wait using server delay or exponential backoff
-          await new Promise(resolve => setTimeout(resolve, serverDelay || backoffDelay));
-          backoffDelay *= 2; // Exponential backoff: 1s, 2s, 4s
-        } else {
-          console.error(`💥 All retries exhausted for PRIMARY model`);
-        }
-      } else {
+      // Check if it's a retryable error (503, 429, 500)
+      const isRetryable = error.status === 503 || error.status === 429 || error.status === 500;
+      
+      if (isRetryable && attempt < maxRetries) {
+        console.log(`⏳ Retrying in ${backoffDelay}ms... (${attempt}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, backoffDelay));
+        backoffDelay *= 2; // Exponential backoff: 1s, 2s, 4s
+      } else if (!isRetryable) {
         // Not a retryable error (invalid API key, invalid model, etc.), throw immediately
         console.error(`🚨 Non-retryable error, throwing immediately`);
         throw error;
@@ -163,17 +152,26 @@ Stay friendly, keep it simple, use emojis, and be there for them like a caring f
 
     // Generate response with retry and fallback
     const result = await generateWithRetry(prompt);
+messages array for OpenAI
+    const messages = [
+      { role: 'system', content: systemPrompt }
+    ];
 
-    // Normal response
-    res.json({ 
-      response: result.text,
-      timestamp: new Date().toISOString()
-    });
+    // Add conversation history
+    if (conversationHistory && conversationHistory.length > 0) {
+      conversationHistory.forEach(msg => {
+        messages.push({
+          role: msg.role === 'assistant' ? 'assistant' : 'user',
+          content: msg.content
+        });
+      });
+    }
 
-  } catch (error) {
-    console.error('Error generating response:', error);
-    res.status(500).json({ 
-      error: 'Failed to generate response',
+    // Add current user message
+    messages.push({ role: 'user', content: message });
+
+    // Generate response with retry
+    const result = await generateWithRetry(messages
       details: error.message 
     });
   }
