@@ -133,7 +133,11 @@ async function sendMessage() {
             return; // Don't update conversation history
         }
 
-        // Normal response - add bot message
+        // Normal response - quota is working again!
+        // Clear any existing quota timer since we got a successful response
+        clearPersistentQuotaTimer();
+        
+        // Add bot message
         addMessage(data.response, 'bot');
 
         // Update conversation history
@@ -290,6 +294,25 @@ function resumePersistentQuotaTimer() {
             document.getElementById('quotaCountdown').textContent = timeString;
         }
     }, 1000);
+}
+
+// Clear persistent quota timer (called when quota is renewed)
+function clearPersistentQuotaTimer() {
+    // Clear the interval
+    if (quotaTimerInterval) {
+        clearInterval(quotaTimerInterval);
+        quotaTimerInterval = null;
+    }
+    
+    // Hide timer and show normal subtitle
+    const quotaTimer = document.getElementById('quotaTimer');
+    const headerSubtitle = document.getElementById('headerSubtitle');
+    if (quotaTimer) quotaTimer.style.display = 'none';
+    if (headerSubtitle) headerSubtitle.style.display = 'block';
+    
+    // Clear from localStorage
+    localStorage.removeItem('quotaResetTime');
+    quotaResetTime = null;
 }
 
 // Add message to chat container
