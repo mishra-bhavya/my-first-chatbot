@@ -1,10 +1,7 @@
 // Configuration
-let API_URL = 'https://my-first-chatbot-backend.onrender.com'; // <-- updated to your Render URL
+let API_URL = 'https://my-first-chatbot-backend.onrender.com';
 let conversationHistory = [];
 let isRequestPending = false; // Debounce flag
-let countdownInterval = null; // Countdown timer reference
-let quotaResetTime = null; // Persistent quota reset timestamp
-let quotaTimerInterval = null; // Persistent quota timer reference
 
 // DOM Elements
 const chatContainer = document.getElementById('chatContainer');
@@ -27,22 +24,6 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         // show the default endpoint in the input if the element exists
         if (apiEndpoint) apiEndpoint.value = API_URL;
-    }
-
-    // Check if quota timer should be restored
-    const savedQuotaResetTime = localStorage.getItem('quotaResetTime');
-    if (savedQuotaResetTime) {
-        const resetTime = parseInt(savedQuotaResetTime);
-        const now = Date.now();
-        
-        if (resetTime > now) {
-            // Quota is still in effect, restore the timer
-            quotaResetTime = resetTime;
-            resumePersistentQuotaTimer();
-        } else {
-            // Quota has expired, clear storage
-            localStorage.removeItem('quotaResetTime');
-        }
     }
 
     // Initialize jungle ambience (placeholder URL - replace with actual audio file)
@@ -135,20 +116,18 @@ async function sendMessage() {
         // Remove typing indicator
         removeTypingIndicator(typingId);
 
-        // Check for quota exhaustion
-        if (response.status === 429 || data.quota === true) {
-            const retryAfter = data.retryAfter || 60; // Default 60 seconds
-            showQuotaMessage(retryAfter);
-            startPersistentQuotaTimer(); // Start the 24-hour countdown in header (your existing logic)
-            return; // Don't update conversation history
+        // Check for errors from backend
+        if (data.error) {
+            showError(`${data.error}${data.details ? ': ' + data.details : ''}`);
+            return;
         }
 
-        // Normal response - quota is working again!
-        // Clear any existing quota timer since we got a successful response
-        clearPersistentQuotaTimer();
-        
-        // Add bot message (data.response expected)
-        const botText = data.response || data.text || "No response.";
+        // Add bot message
+        const botText = data.response || "";
+        if (!botText) {
+            showError('Received empty response from backend. Please try again.');
+            return;
+        }
         addMessage(botText, 'bot');
 
         // Update conversation history
@@ -183,170 +162,6 @@ async function sendMessage() {
             // The quota countdown handler will re-enable the UI when time is up.
         }
     }
-}
-
-// Show quota exhaustion message with countdown
-function showQuotaMessage(retryAfter) {
-    let remainingSeconds = retryAfter;
-    
-    // If a quota message already exists, update countdown instead of adding another
-    let existing = document.getElementById('quota-message');
-    if (existing) {
-        const countdownEl = existing.querySelector('#countdown');
-        if (countdownEl) countdownEl.textContent = `${remainingSeconds}s`;
-        return;
-    }
-    
-    // Create quota message element
-    const messageDiv = document.createElement('div');
-    messageDiv.className = 'message bot';
-    messageDiv.id = 'quota-message';
-    
-    const contentDiv = document.createElement('div');
-    contentDiv.className = 'message-content';
-    contentDiv.innerHTML = `🌙 Bagheera is resting — we've reached our daily limit. Please try again in <strong id="countdown">${remainingSeconds}s</strong>.`;
-    
-    messageDiv.appendChild(contentDiv);
-    chatContainer.appendChild(messageDiv);
-    chatContainer.scrollTop = chatContainer.scrollHeight;
-
-    // Disable send button and input
-    sendBtn.disabled = true;
-    userInput.disabled = true;
-
-    // Start countdown
-    if (countdownInterval) clearInterval(countdownInterval);
-    countdownInterval = setInterval(() => {
-        remainingSeconds--;
-        const countdownEl = document.getElementById('countdown');
-        if (countdownEl) {
-            countdownEl.textContent = `${remainingSeconds}s`;
-        }
-
-        if (remainingSeconds <= 0) {
-            clearInterval(countdownInterval);
-            countdownInterval = null;
-            
-            // Re-enable UI silently (don't show false hope message)
-            sendBtn.disabled = false;
-            userInput.disabled = false;
-            userInput.focus();
-            
-            // Remove quota message
-            const quotaMsg = document.getElementById('quota-message');
-            if (quotaMsg) {
-                quotaMsg.remove();
-            }
-            
-            // Don't show "jungle awakens" message - let the user try again
-            // If quota is still exhausted, they'll see the resting message again
-        }
-    }, 1000);
-}
-
-// Start persistent 24-hour quota countdown timer in header
-function startPersistentQuotaTimer() {
-    // Set quota reset time to 24 hours from now
-    quotaResetTime = Date.now() + (24 * 60 * 60 * 1000);
-    
-    // Save to localStorage for persistence across refreshes
-    localStorage.setItem('quotaResetTime', quotaResetTime.toString());
-    
-    // Show the timer in header
-    const quotaTimer = document.getElementById('quotaTimer');
-    const headerSubtitle = document.getElementById('headerSubtitle');
-    if (quotaTimer) quotaTimer.style.display = 'block';
-    if (headerSubtitle) headerSubtitle.style.display = 'none';
-    
-    // Clear any existing timer
-    if (quotaTimerInterval) {
-        clearInterval(quotaTimerInterval);
-    }
-    
-    // Update the countdown every second
-    quotaTimerInterval = setInterval(() => {
-        const now = Date.now();
-        const remaining = quotaResetTime - now;
-        
-        if (remaining <= 0) {
-            // Quota should be reset
-            clearInterval(quotaTimerInterval);
-            quotaTimerInterval = null;
-            if (quotaTimer) quotaTimer.style.display = 'none';
-            if (headerSubtitle) headerSubtitle.style.display = 'block';
-            quotaResetTime = null;
-            localStorage.removeItem('quotaResetTime');
-        } else {
-            // Calculate hours, minutes, seconds
-            const hours = Math.floor(remaining / (60 * 60 * 1000));
-            const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
-            const seconds = Math.floor((remaining % (60 * 1000)) / 1000);
-            
-            // Format as HH:MM:SS
-            const timeString = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-            const el = document.getElementById('quotaCountdown');
-            if (el) el.textContent = timeString;
-        }
-    }, 1000);
-}
-
-// Resume persistent quota timer from localStorage
-function resumePersistentQuotaTimer() {
-    // Show the timer in header
-    const quotaTimer = document.getElementById('quotaTimer');
-    const headerSubtitle = document.getElementById('headerSubtitle');
-    if (quotaTimer) quotaTimer.style.display = 'block';
-    if (headerSubtitle) headerSubtitle.style.display = 'none';
-    
-    // Clear any existing timer
-    if (quotaTimerInterval) {
-        clearInterval(quotaTimerInterval);
-    }
-    
-    // Update the countdown every second
-    quotaTimerInterval = setInterval(() => {
-        const now = Date.now();
-        const remaining = quotaResetTime - now;
-        
-        if (remaining <= 0) {
-            // Quota should be reset
-            clearInterval(quotaTimerInterval);
-            quotaTimerInterval = null;
-            if (quotaTimer) quotaTimer.style.display = 'none';
-            if (headerSubtitle) headerSubtitle.style.display = 'block';
-            quotaResetTime = null;
-            localStorage.removeItem('quotaResetTime');
-        } else {
-            // Calculate hours, minutes, seconds
-            const hours = Math.floor(remaining / (60 * 60 * 1000));
-            const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
-            const seconds = Math.floor((remaining % (60 * 1000)) / 1000);
-            
-            // Format as HH:MM:SS
-            const timeString = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-            const el = document.getElementById('quotaCountdown');
-            if (el) el.textContent = timeString;
-        }
-    }, 1000);
-}
-
-// Clear persistent quota timer (called when quota is renewed)
-function clearPersistentQuotaTimer() {
-    // Clear the interval
-    if (quotaTimerInterval) {
-        clearInterval(quotaTimerInterval);
-        quotaTimerInterval = null;
-    }
-    
-    // Hide timer and show normal subtitle
-    const quotaTimer = document.getElementById('quotaTimer');
-    const headerSubtitle = document.getElementById('headerSubtitle');
-    if (quotaTimer) quotaTimer.style.display = 'none';
-    if (headerSubtitle) headerSubtitle.style.display = 'block';
-    
-    // Clear from localStorage
-    localStorage.removeItem('quotaResetTime');
-    quotaResetTime = null;
 }
 
 // Add message to chat container

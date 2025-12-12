@@ -34,6 +34,7 @@ const FALLBACK_MODEL = process.env.FALLBACK_MODEL || 'gemini-1.5-flash-latest';
 async function generateWithRetry(prompt, maxRetries = 3) {
   let attempt = 0;
   let backoffDelay = 1000; // Start with 1 second
+  let lastError = null;
 
   // Try primary model
   while (attempt < maxRetries) {
@@ -48,13 +49,14 @@ async function generateWithRetry(prompt, maxRetries = 3) {
         ]
       });
       const response = await result.response;
-      return { text: response.text(), quota: false };
+      return { text: response.text(), success: true };
     } catch (error) {
       attempt++;
+      lastError = error;
       
-      // Check if it's a 429 quota error
-      if (error.message && error.message.includes('429')) {
-        console.log(`Quota error on attempt ${attempt}, waiting ${backoffDelay}ms...`);
+      // Check if it's a 503 (service unavailable/overloaded) or 429 (rate limit)
+      if (error.message && (error.message.includes('503') || error.message.includes('429'))) {
+        console.log(`Retry ${attempt}/${maxRetries}: Server busy/overloaded, waiting ${backoffDelay}ms...`);
         
         // Parse server-supplied retry delay if available (e.g., "19s")
         const retryMatch = error.message.match(/(\d+)s/);
@@ -78,21 +80,21 @@ async function generateWithRetry(prompt, maxRetries = 3) {
               ]
             });
             const response = await result.response;
-            return { text: response.text(), quota: false };
+            return { text: response.text(), success: true };
           } catch (fallbackError) {
             console.error('Fallback model also failed:', fallbackError.message);
+            lastError = fallbackError;
           }
         }
       } else {
-        // Not a quota error, throw immediately
+        // Not a retryable error (invalid API key, invalid model, etc.), throw immediately
         throw error;
       }
     }
   }
 
-  // All retries exhausted - return quota exhausted with retry delay
-  const retryAfter = Math.ceil(backoffDelay / 1000); // Convert to seconds
-  return { quota: true, retryAfter };
+  // All retries exhausted - throw the last error instead of returning fake quota
+  throw lastError;
 }
 
 // Health check endpoint
@@ -172,19 +174,9 @@ Stay friendly, keep it simple, use emojis, and be there for them like a caring f
     // Generate response with retry and fallback
     const result = await generateWithRetry(prompt);
 
-    // Check if quota exhausted
-    if (result.quota) {
-      return res.status(429).json({
-        quota: true,
-        retryAfter: result.retryAfter,
-        message: 'API quota exhausted. Please try again later.'
-      });
-    }
-
     // Normal response
     res.json({ 
       response: result.text,
-      quota: false,
       timestamp: new Date().toISOString()
     });
 
