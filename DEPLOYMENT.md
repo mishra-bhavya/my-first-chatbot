@@ -14,9 +14,11 @@
    - **Start Command**: `cd backend && npm start`
    - **Plan**: Free (or your choice)
 
-6. Add Environment Variable:
-   - Key: `GEMINI_API_KEY`
-   - Value: Your actual Gemini API key
+6. Add Environment Variables:
+   - Key: `OPENAI_API_KEY`
+   - Value: Your actual OpenAI API key
+   - Key: `PRIMARY_MODEL`
+   - Value: `gpt-4o-mini`
 
 7. Click "Create Web Service"
 
@@ -93,7 +95,7 @@
 ## Post-Deployment Checklist
 
 - [ ] Backend is running on Render
-- [ ] Environment variable `GEMINI_API_KEY` is set in Render
+- [ ] Environment variables `OPENAI_API_KEY` and `PRIMARY_MODEL` are set in Render
 - [ ] Frontend is deployed to GitHub Pages
 - [ ] Frontend's `API_URL` points to your Render backend
 - [ ] CORS is enabled in backend (already configured)
@@ -125,7 +127,7 @@
 ### Issue: 502 Bad Gateway on Render
 **Solution**:
 - Check Render logs
-- Verify GEMINI_API_KEY is set correctly
+- Verify OPENAI_API_KEY is set correctly
 - Ensure npm install completed successfully
 
 ### Issue: GitHub Pages shows 404

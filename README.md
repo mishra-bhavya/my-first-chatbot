@@ -1,6 +1,6 @@
 # My AI Chatbot
 
-A monolithic chatbot application powered by Google's Gemini API with a modern web interface.
+A monolithic chatbot application powered by OpenAI's GPT-4o-mini with a modern web interface.
 
 ## Project Structure
 
@@ -21,7 +21,7 @@ my-first-chatbot/
 ## Features
 
 - 💬 Real-time chat interface
-- 🤖 Powered by Google Gemini AI
+- 🤖 Powered by OpenAI GPT-4o-mini
 - 📱 Responsive design
 - 💾 Conversation history management
 - 🎨 Beautiful gradient UI
@@ -32,7 +32,7 @@ my-first-chatbot/
 ### Prerequisites
 
 - Node.js (v18 or higher)
-- A Google Gemini API key ([Get one here](https://makersuite.google.com/app/apikey))
+- An OpenAI API key ([Get one here](https://platform.openai.com/api-keys))
 
 ### Backend Setup
 
@@ -51,9 +51,10 @@ npm install
 copy .env.example .env
 ```
 
-4. Add your Gemini API key to the `.env` file:
+4. Add your OpenAI API key to the `.env` file:
 ```
-GEMINI_API_KEY=your_actual_api_key_here
+OPENAI_API_KEY=your_actual_api_key_here
+PRIMARY_MODEL=gpt-4o-mini
 PORT=3000
 ```
 
@@ -99,7 +100,7 @@ http-server -p 8000
 4. Configure the service:
    - **Build Command**: `cd backend && npm install`
    - **Start Command**: `cd backend && npm start`
-   - **Environment Variables**: Add `GEMINI_API_KEY` with your API key
+   - **Environment Variables**: Add `OPENAI_API_KEY` with your API key and `PRIMARY_MODEL` set to `gpt-4o-mini`
 5. Deploy!
 
 After deployment, update your frontend's API endpoint to use your Render URL (e.g., `https://your-app.onrender.com`)
@@ -147,7 +148,7 @@ git push origin gh-pages
 ### "Failed to get response"
 - Make sure the backend server is running
 - Check that the API endpoint URL is correct
-- Verify your Gemini API key is valid
+- Verify your OpenAI API key is valid
 
 ### CORS Issues
 - The backend includes CORS middleware to allow cross-origin requests
@@ -183,4 +184,4 @@ If you encounter any issues, please check:
 
 ---
 
-Made with ❤️ using Gemini AI
+Made with ❤️ using OpenAI GPT-4o-mini

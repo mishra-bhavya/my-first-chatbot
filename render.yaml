@@ -5,4 +5,5 @@ buildCommand: cd backend && npm install
 startCommand: cd backend && npm start
 
 # Environment Variables to set in Render dashboard:
-# GEMINI_API_KEY=your_gemini_api_key_here
+# OPENAI_API_KEY=your_openai_api_key_here
+# PRIMARY_MODEL=gpt-4o-mini
